@@ -1,0 +1,28 @@
+{
+  "name": "home-nav",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "cf deploy",
+    "check": "vue-tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.62.0",
+    "grid-layout-plus": "^1.1.1",
+    "vue": "^3.5.44",
+    "vuedraggable": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "beta",
+    "@types/node": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "cf": "1.0.0-beta.23",
+    "typescript": "^6.0.3",
+    "vite": "latest",
+    "vue-tsc": "latest"
+  }
+}
