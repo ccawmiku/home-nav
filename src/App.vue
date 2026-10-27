@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
-import { CirclePlus, WandSparkles, Check, Plus, LogOut, KeyRound, Download, Upload, LoaderCircle, GripVertical, Pencil, RotateCw } from '@lucide/vue'
+import { CirclePlus, WandSparkles, Plus, LogOut, KeyRound, Download, Upload, LoaderCircle, Layers, ChevronDown, Minus, RotateCw } from '@lucide/vue'
 import { GridItem, GridLayout } from 'grid-layout-plus'
 import Draggable from 'vuedraggable'
 import { emptyDashboard, validateDashboard, websiteUrl } from '../shared/dashboard'
@@ -14,14 +14,17 @@ const authenticated = ref(false); const loading = ref(true); const bootError = r
 const password = ref(''); const token = ref(''); const loginError = ref(''); const busy = ref(false)
 const turnstile = ref<InstanceType<typeof TurnstileWidget>>()
 const editing = ref(false); let snapshot = ''
-const accountOpen = ref(false); const modal = ref<'site' | 'password' | null>(null)
+const accountOpen = ref(false); const sectionMenuOpen = ref(false); const modal = ref<'site' | 'password' | 'tiles' | null>(null)
 const notice = ref(''); let noticeTimer: ReturnType<typeof setTimeout> | undefined
 const modalError = ref(''); const autoBusy = ref(false); const form = ref<Site>(newSite()); const originalId = ref('')
 const currentPassword = ref(''); const nextPassword = ref(''); const repeatPassword = ref('')
 const width = ref(window.innerWidth); const columns = computed(() => width.value < 760 ? 4 : 6)
-const sections = computed(() => dashboard.value.sections.map(section => {
+const sections = computed(() => dashboard.value.sections.filter(section => !section.hidden).map(section => {
   const rows = Math.ceil(section.sites.length / columns.value)
-  return { i: section.id, x: section.x, y: section.y, w: section.w, h: Math.max(315, columns.value === 4 ? rows * 90 + 40 : rows * 109 + Math.max(0, rows - 1) * 30 + 70) }
+  const height = editing.value
+    ? rows * (columns.value === 4 ? 60 : 76) + Math.max(0, rows - 1) * (columns.value === 4 ? 10 : 30) + 102
+    : columns.value === 4 ? rows * 90 + 40 : rows * 109 + Math.max(0, rows - 1) * 30 + 70
+  return { i: section.id, x: section.x, y: section.y, w: section.w, h: Math.max(315, height) }
 }))
 const upload = ref<HTMLInputElement>(); const account = ref<HTMLElement>()
 function newSite(): Site { return { id: crypto.randomUUID(), name: '', url: '', icon: { type: 'auto', value: '' } } }
@@ -55,12 +58,15 @@ async function save() {
   const result = await api<{ revision: number }>('/api/dashboard', { method: 'PUT', body: JSON.stringify({ dashboard: validateDashboard(dashboard.value), revision: revision.value }) })
   revision.value = result.revision
 }
-function customize() { snapshot = JSON.stringify(dashboard.value); editing.value = true; accountOpen.value = false }
+function customize() { snapshot = JSON.stringify(dashboard.value); editing.value = true; accountOpen.value = false; sectionMenuOpen.value = false }
 async function finish() {
   busy.value = true
-  try { await save(); editing.value = false; snapshot = ''; flash('已保存') } catch (error) { flash((error as Error).message) } finally { busy.value = false }
+    try { await save(); editing.value = false; sectionMenuOpen.value = false; snapshot = ''; flash('已保存') } catch (error) { flash((error as Error).message) } finally { busy.value = false }
 }
-function cancel() { dashboard.value = JSON.parse(snapshot); editing.value = false; snapshot = '' }
+function cancel() { dashboard.value = JSON.parse(snapshot); editing.value = false; sectionMenuOpen.value = false; snapshot = '' }
+function hideSection() { dashboard.value.sections[0]!.hidden = true; sectionMenuOpen.value = false }
+function restoreSection() { dashboard.value.sections[0]!.hidden = false; modal.value = null }
+function openTiles() { sectionMenuOpen.value = false; modal.value = 'tiles' }
 function openSite(site?: Site) { if (busy.value) return; metadataGeneration++; originalId.value = site?.id || ''; form.value = site ? JSON.parse(JSON.stringify(site)) : newSite(); modalError.value = ''; autoBusy.value = false; accountOpen.value = false; modal.value = 'site' }
 let metadataGeneration = 0
 async function getMetadata() {
@@ -82,6 +88,7 @@ async function submitSite() {
     if (!site.name) site.name = new URL(site.url).host
     const list = dashboard.value.sections[0]!.sites; const index = list.findIndex(value => value.id === originalId.value)
     if (index < 0) list.push(site); else list[index] = site
+    dashboard.value.sections[0]!.hidden = false
     validateDashboard(dashboard.value); if (!editing.value) await save()
     metadataGeneration++; modal.value = null
   } catch (error) { dashboard.value = JSON.parse(before); modalError.value = (error as Error).message }
@@ -121,16 +128,17 @@ async function importConfig(event: Event) {
 function siteClick(event: MouseEvent, site: Site) { if (editing.value) { event.preventDefault(); openSite(site) } }
 function moveSite(section: WebsiteSection, index: number, direction: number) { const target = index + direction; if (target < 0 || target >= section.sites.length) return; const [site] = section.sites.splice(index, 1); section.sites.splice(target, 0, site!) }
 function windowResize() { width.value = window.innerWidth }
-function outside(event: MouseEvent) { if (account.value && !account.value.contains(event.target as Node)) accountOpen.value = false }
+function outside(event: MouseEvent) { if (account.value && !account.value.contains(event.target as Node)) accountOpen.value = false; if (event.target instanceof Element && !event.target.closest('.section-options')) sectionMenuOpen.value = false }
+function escapeEdit(event: KeyboardEvent) { if (event.key === 'Escape' && !event.defaultPrevented && !modal.value && editing.value && !busy.value) { if (sectionMenuOpen.value) sectionMenuOpen.value = false; else cancel() } }
 function refreshVisible() { if (!document.hidden && authenticated.value && !editing.value && !modal.value && !busy.value) void loadDashboard().catch(error => flash(error.message)) }
 function beforeUnload(event: BeforeUnloadEvent) { if (editing.value) event.preventDefault() }
-onMounted(() => { void boot(); window.addEventListener('resize', windowResize); document.addEventListener('click', outside); document.addEventListener('visibilitychange', refreshVisible); window.addEventListener('beforeunload', beforeUnload) })
-onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resize', windowResize); document.removeEventListener('click', outside); document.removeEventListener('visibilitychange', refreshVisible); window.removeEventListener('beforeunload', beforeUnload) })
+onMounted(() => { void boot(); window.addEventListener('resize', windowResize); document.addEventListener('click', outside); document.addEventListener('visibilitychange', refreshVisible); window.addEventListener('beforeunload', beforeUnload); window.addEventListener('keydown', escapeEdit) })
+onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resize', windowResize); document.removeEventListener('click', outside); document.removeEventListener('visibilitychange', refreshVisible); window.removeEventListener('beforeunload', beforeUnload); window.removeEventListener('keydown', escapeEdit) })
 </script>
 
 <template>
-  <div class="wallpaper" aria-hidden="true" /><div class="top-shade" aria-hidden="true" />
-  <header class="toolbar">
+  <div class="wallpaper" aria-hidden="true" />
+  <header v-if="!editing" class="toolbar">
     <a class="brand" href="/" aria-label="首页导航">首页导航</a>
     <div v-if="authenticated" class="toolbar-actions">
       <button class="icon-button" aria-label="添加网站" title="添加网站" :disabled="busy" @click="openSite()"><CirclePlus :size="22" :stroke-width="1.8" /></button>
@@ -160,28 +168,34 @@ onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resiz
   </main>
 
   <main v-else class="desktop" :class="{ editing }">
-    <div v-if="editing" class="edit-toolbar"><button :disabled="busy" @click="cancel">取消</button><span>自定义</span><button class="edit-done" :disabled="busy" @click="finish">{{ busy ? '保存中…' : '完成' }}</button></div>
+    <div v-if="editing" class="edit-toolbar"><div class="edit-toolbar-inner"><button class="edit-done" :disabled="busy" @click="finish">{{ busy ? '保存中…' : '完成' }}</button><button class="add-tile" :disabled="busy" @click="openTiles">添加拼贴<CirclePlus :size="22" /></button></div></div>
     <div class="layout-shell">
       <GridLayout :layout="sections" :col-num="12" :row-height="1" :margin="[0, 0]" :is-draggable="false" :is-resizable="false" :use-css-transforms="true">
         <GridItem v-for="(section, index) in sections" :key="section.i" :i="section.i" :x="section.x" :y="section.y" :w="section.w" :h="section.h">
-          <section class="app-library glass" aria-label="网站">
+          <div class="tile-container">
+          <section class="app-library glass" :class="{ 'edit-mode': editing }" aria-label="网站">
+            <button v-if="editing" class="remove-section" aria-label="移除网站拼贴" title="移除网站拼贴" :disabled="busy" @click="hideSection"><Minus :size="18" /></button>
+            <header v-if="editing" class="section-header"><div class="section-title"><Layers :size="20" :stroke-width="1.8" /><span>网站</span></div><div class="section-options"><button class="section-menu-button" aria-label="网站拼贴选项" :aria-expanded="sectionMenuOpen" aria-haspopup="menu" @click="sectionMenuOpen = !sectionMenuOpen"><ChevronDown :size="20" /></button><div v-if="sectionMenuOpen" class="section-menu account-menu" role="menu"><button role="menuitem" @click="sectionMenuOpen = false; openSite()"><Plus :size="17" />添加网站</button><button role="menuitem" @click="cancel"><RotateCw :size="17" />取消本次修改</button></div></div></header>
             <Draggable v-model="dashboard.sections[index]!.sites" class="app-icon-container" item-key="id" :disabled="!editing || busy" :animation="180" :delay="140" :delay-on-touch-only="true" :touch-start-threshold="5" ghost-class="drag-ghost" chosen-class="drag-chosen" :fallback-tolerance="5">
               <template #item="{ element: site, index: siteIndex }">
                 <a class="app-icon-link" :href="site.url" target="_blank" rel="noopener noreferrer" :title="site.name" :aria-label="editing ? '编辑 ' + site.name : site.name" @click="siteClick($event, site)" @keydown.alt.left.prevent="editing && moveSite(dashboard.sections[index]!, siteIndex, -1)" @keydown.alt.right.prevent="editing && moveSite(dashboard.sections[index]!, siteIndex, 1)">
-                  <SiteIcon :icon="site.icon" /><span class="app-displayname">{{ site.name }}</span><span v-if="editing" class="edit-badge"><Pencil :size="11" /></span>
+                  <SiteIcon :icon="site.icon" /><span class="app-displayname">{{ site.name }}</span>
                 </a>
               </template>
               <template #footer><button v-if="!dashboard.sections[index]!.sites.length" class="empty-add" aria-label="添加网站" @click="openSite()"><Plus :size="32" :stroke-width="1.5" /></button></template>
             </Draggable>
           </section>
+          </div>
         </GridItem>
       </GridLayout>
     </div>
-    <button class="customize-button pill" :disabled="busy" @click="editing ? finish() : customize()"><component :is="editing ? Check : WandSparkles" :size="17" :stroke-width="1.7" />{{ editing ? '完成' : '自定义' }}</button>
+    <button v-if="!editing" class="customize-button pill" :disabled="busy" @click="customize"><WandSparkles :size="17" :stroke-width="1.7" />自定义</button>
   </main>
 
   <div v-if="notice" class="toast" role="status">{{ notice }}</div>
   <input ref="upload" type="file" accept="application/json,.json" hidden @change="importConfig" />
+
+  <DialogShell v-if="modal === 'tiles'" title="添加拼贴" @close="closeModal"><div class="tile-picker"><button class="tile-picker-choice" :disabled="!dashboard.sections[0]!.hidden" @click="restoreSection"><Layers :size="28" /><span>网站</span><span class="tile-picker-status">{{ dashboard.sections[0]!.hidden ? '添加' : '已添加' }}</span></button></div></DialogShell>
 
   <DialogShell v-if="modal === 'site'" :title="originalId ? '编辑网站' : '添加网站'" :busy="busy" @close="closeModal">
     <form class="site-form" @submit.prevent="submitSite">
