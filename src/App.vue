@@ -69,7 +69,7 @@ async function getMetadata() {
     const url = websiteUrl(form.value.url); autoBusy.value = true
     const result = await api<{ name: string; icon: string; local?: boolean }>('/api/metadata', { method: 'POST', body: JSON.stringify({ url }) })
     if (generation !== metadataGeneration || modal.value !== 'site') return
-    if (!before || form.value.name === before) form.value.name = result.name
+    if (form.value.name === before) form.value.name = result.name
     if (form.value.icon.type === 'auto') form.value.icon.value = result.icon
   } catch (error) { if (generation === metadataGeneration) modalError.value = (error as Error).message }
   finally { if (generation === metadataGeneration) autoBusy.value = false }
