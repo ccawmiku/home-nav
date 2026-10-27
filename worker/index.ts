@@ -65,7 +65,7 @@ async function handle(request: Request): Promise<Response> {
   }
   if (url.pathname === '/api/password' && request.method === 'POST') {
     const input = await body(request, 2000) as { current: string; password: string }
-    if (typeof input.current !== 'string' || typeof input.password !== 'string' || input.current.length > 256 || input.password.length < 12 || input.password.length > 128) throw new Error('新密码应为 12–128 个字符')
+    if (typeof input.current !== 'string' || typeof input.password !== 'string' || input.current.length > 256 || input.password.length < 8 || input.password.length > 128) throw new Error('新密码应为 8–128 个字符')
     if (!await passwordMatches(input.current)) return json({ error: '当前密码错误' }, 400)
     const salt = crypto.randomUUID(); const hash = await hashPassword(input.password, salt)
     await env.DB.batch([
