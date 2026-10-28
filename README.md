@@ -6,10 +6,12 @@ Vue 3 + Vite + Cloudflare Workers 构建的个人网站导航。界面参考 iCl
 - D1 保存网站、图标、排列顺序；切回页面时获取其他设备的更新。
 - 网站增删改、拖拽排序；编辑模式下也可使用 Alt + 左右方向键排序。
 - 自动读取公网网站标题与图标；完整 Lucide 图标库可搜索、选色。
-- 手机使用原参考页的单栏逻辑：315px 卡片、四列 54px 图标；桌面为 660px 卡片、六列 70px 图标，断点 760px。
+- 沿用原页 SM / MD / LG 三档容器；1165px 以下为 315px 卡片、四列 54px 图标，1165px 起为 660px 卡片、六列 70px 图标。容器切换点为 760px 和 1165px。
 - 自定义模式沿用 iCloud 的 80px 玻璃工具栏、白底拼贴与整卡轻微抖动；拼贴移除后可重新添加，网站数据保留。按 Esc 可取消本次修改。
 - Grid Layout Plus 负责栏目布局，Vue Draggable / SortableJS 负责网站图标排序。数据保留栏目类型与布局信息，方便后续扩展其他栏目。
 - 设置中支持 JSON 导入、导出和修改密码。
+
+原始样式来源、布局规则与验证方法见 [iCloud 参考实现记录](docs/icloud-reference.md)。
 
 ## 本地开发
 
@@ -63,5 +65,6 @@ Worker 位于 Cloudflare，无法访问家庭局域网。首次导入可在本�
 - 页面尺寸、背景混合与透明卡片参数参考用户提供的 iCloud 离线页面。
 - `public/wallpaper.svg` 来自 [iCloud 参考页面](https://www.icloud.com.cn/system/icloud.com/2638Build27/wallpaper.svg)；Apple 相关素材的权利归原权利人。本仓库并非 Apple 官方产品。
 - 头像由用户提供。重新部署独立实例时可替换 `public/avatar.png`。
+- `public/fonts/` 保留原页面引用的 Apple SF Pro Text 字体资源，权利归原权利人。
 - [Lucide](https://lucide.dev/) 图标由 `@lucide/vue` 提供，遵循其 ISC 许可证。
 - [Cloudflare 官方开发技能](https://github.com/cloudflare/skills)、[Cloudflare CLI](https://developers.cloudflare.com/cf/)、[Turnstile 服务端验证](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)。

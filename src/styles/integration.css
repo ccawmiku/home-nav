@@ -1,0 +1,88 @@
+/* Vue/Grid Layout Plus adapters. The material, padding, breakpoint and motion
+   declarations live in icloud-reference.css, extracted from the supplied page. */
+@font-face {
+  font-family: "SF Pro Text";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/SF-Pro-Text-regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: "SF Pro Text";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/SF-Pro-Text-semibold.woff2') format('woff2');
+}
+html, body, #app { width: 100%; height: 100%; overflow: hidden; }
+html { color-scheme: light; }
+body {
+  --theme-color-labelPrimary: rgba(0,0,0,.88);
+  --theme-color-labelSecondary: rgba(0,0,0,.56);
+  --theme-color-labelTertiary: rgba(0,0,0,.48);
+  --theme-color-labelQuaternary: rgba(0,0,0,.32);
+  --theme-color-backgroundPrimary: #fff;
+  --theme-color-backgroundLayer1: #f2f2f7;
+  --theme-color-boxShadow: rgba(0,0,0,.16);
+  --theme-color-fillPrimary: rgba(120,120,128,.2);
+  --theme-color-fillTertiary: rgba(118,118,128,.12);
+  --theme-color-tintBlue: rgba(0,113,227,.7);
+  --theme-color-systemRed: #e30000;
+  --theme-color-systemWhite: #fff;
+  --theme-color-gray1: #8e8e93;
+  --theme-color-gray4: #d1d1d6;
+}
+.homepage-viewport { visibility: visible; opacity: 1; }
+.homepage-viewport .homepage-gradient-background {
+  background-image: url('/wallpaper.svg');
+  pointer-events: none;
+}
+.homepage-content { isolation: auto; }
+.homepage-viewport .homepage-scrollview.modal-open { overflow: hidden; }
+.toolbar { justify-content: space-between; flex-shrink: 0; }
+.toolbar-spacer { height: 44px; flex-shrink: 0; }
+.brand { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.3px; }
+.toolbar-actions { display: flex; align-items: center; margin-left: auto; }
+.toolbar-actions > .icon-button, .avatar-button { width: 36px; height: 36px; margin-inline: 4px; }
+.avatar-button { display: grid; place-items: center; padding: 0; border-radius: 8px; background: none; }
+.avatar-button img, .login-avatar { display: block; width: 28px; height: 28px; object-fit: cover; border-radius: 50%; }
+.login-avatar { margin: 0 8px; }
+.home-page { flex: 1 0 auto; }
+.home-page .application-content .tile-grid { max-width: 100%; justify-content: center; }
+.website-grid { max-width: calc(100% - 30px); padding: 0 !important; margin: 15px; flex-shrink: 0; transition: width .3s ease-in-out, height .3s ease-in-out; }
+.tile-grid .website-grid .tile-grid-tile-container { width: 100%; margin: 0; touch-action: auto; }
+.tile-grid .tile-grid-tile-content { height: 100% !important; width: 100% !important; }
+.tile-container { height: 100%; position: relative; }
+.app-library { height: 100%; }
+.app-library .app-icon-container div.app-displayname { color: var(--theme-color-labelPrimary); font-family: "SF Pro SC", "SF Pro Text", "Helvetica Neue", sans-serif; }
+.app-library.edit-mode .header .title span { font-family: "SF Pro SC", "SF Pro Display", "Helvetica Neue", sans-serif; }
+.app-library.edit-mode .app-displayname { display: none; }
+.site-icon { width: 54px; height: 54px; border-radius: 13px; box-shadow: none; }
+.site-icon svg { width: 29px; height: 29px; }
+.app-library.large .site-icon { width: 70px; height: 70px; border-radius: 17px; }
+.app-library.large .site-icon svg { width: 36px; height: 36px; }
+.app-icon-link { color: var(--theme-color-labelPrimary); }
+.customize-dashboard-button { display: flex; align-items: center; justify-content: center; gap: 7px; border: 0; }
+.dashboard-customization-header { left: 0; right: 0; }
+.dashboard-customization-header .header-container { height: 100%; }
+.edit-done { min-height: 32px; padding: 5px 15px; border-radius: 18px; background: #007aff; color: white; font-size: 14px; font-weight: 600; }
+.add-tile { display: flex; align-items: center; gap: 7px; background: none; padding: 8px 0; font-size: 14px; }
+.add-tile svg { fill: currentColor; color: var(--theme-color-labelPrimary); stroke: #f8f8fc; }
+.app-library.edit-mode .section-header { height: 30px; }
+.section-title > svg { color: var(--theme-color-labelTertiary); }
+.tile-grid.customizing .tile-grid-tile-content .tile-container {
+  animation: jiggly var(--jiggle-duration,150ms) ease-in-out var(--jiggle-delay,130ms) infinite alternate;
+  will-change: transform; transform-origin: center;
+}
+.editing .app-icon-link { cursor: grab; touch-action: none; }
+.editing .app-icon-link:active { cursor: grabbing; }
+.glass { background: radial-gradient(circle at 100% 0,hsla(0,0%,100%,.85) 0,hsla(0,0%,96.1%,.13) 183%); backdrop-filter: blur(15px) saturate(86%); -webkit-backdrop-filter: blur(15px) saturate(86%); }
+@media (max-width: 344px) {
+  .app-library { padding-inline: 15px; }
+  .app-library .app-icon-container { column-gap: 6px; }
+  .app-library .app-icon-container .app-icon-link { min-width: 0; }
+  .site-icon { width: 48px; height: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

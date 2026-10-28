@@ -8,6 +8,7 @@ import type { Dashboard, Site, WebsiteSection } from '../shared/dashboard'
 import SiteIcon from './SiteIcon.vue'
 import DialogShell from './DialogShell.vue'
 import TurnstileWidget from './TurnstileWidget.vue'
+import { homepageLayout, libraryHeight } from './layout'
 const IconPicker = defineAsyncComponent(() => import('./IconPicker.vue'))
 const dashboard = ref<Dashboard>(emptyDashboard()); const revision = ref(0)
 const authenticated = ref(false); const loading = ref(true); const bootError = ref(''); const sitekey = ref('')
@@ -18,13 +19,10 @@ const accountOpen = ref(false); const sectionMenuOpen = ref(false); const modal 
 const notice = ref(''); let noticeTimer: ReturnType<typeof setTimeout> | undefined
 const modalError = ref(''); const autoBusy = ref(false); const form = ref<Site>(newSite()); const originalId = ref('')
 const currentPassword = ref(''); const nextPassword = ref(''); const repeatPassword = ref('')
-const width = ref(window.innerWidth); const columns = computed(() => width.value < 760 ? 4 : 6)
+const width = ref(window.innerWidth); const layout = computed(() => homepageLayout(width.value))
+const scrollview = ref<HTMLElement>()
 const sections = computed(() => dashboard.value.sections.filter(section => !section.hidden).map(section => {
-  const rows = Math.ceil(section.sites.length / columns.value)
-  const height = editing.value
-    ? rows * (columns.value === 4 ? 60 : 76) + Math.max(0, rows - 1) * (columns.value === 4 ? 10 : 30) + 102
-    : columns.value === 4 ? rows * 90 + 40 : rows * 109 + Math.max(0, rows - 1) * 30 + 70
-  return { i: section.id, x: section.x, y: section.y, w: section.w, h: Math.max(315, height) }
+  return { i: section.id, x: section.x, y: section.y, w: section.w, h: libraryHeight(section.sites.length, layout.value.large, editing.value) }
 }))
 const upload = ref<HTMLInputElement>(); const account = ref<HTMLElement>()
 function newSite(): Site { return { id: crypto.randomUUID(), name: '', url: '', icon: { type: 'auto', value: '' } } }
@@ -137,8 +135,12 @@ onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resiz
 </script>
 
 <template>
-  <div class="wallpaper" aria-hidden="true" />
-  <header v-if="!editing" class="toolbar">
+  <div class="homepage-viewport" :class="{ customizing: editing }">
+  <div class="welcome-page-gradient-background" aria-hidden="true" />
+  <div class="homepage-gradient-background red homepage-gradient-background-fade-in" aria-hidden="true" />
+  <div ref="scrollview" class="homepage-scrollview scrollable" :class="{ 'modal-open': modal }">
+  <div class="homepage-content">
+  <header v-if="!editing" class="toolbar cloudos-toolbar homepage overlay">
     <a class="brand" href="/" aria-label="首页导航">首页导航</a>
     <div v-if="authenticated" class="toolbar-actions">
       <button class="icon-button" aria-label="添加网站" title="添加网站" :disabled="busy" @click="openSite()"><CirclePlus :size="22" :stroke-width="1.8" /></button>
@@ -155,6 +157,14 @@ onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resiz
     <img v-else class="login-avatar" src="/avatar.png" alt="头像" />
   </header>
 
+  <div v-if="editing" class="toolbar-spacer" aria-hidden="true" />
+  <div v-if="authenticated" class="dashboard-customization-header" :class="{ visible: editing }" :aria-hidden="!editing" :inert="!editing || undefined">
+    <div class="header-container-background"><div class="header-container">
+      <div class="header-start-view"><button class="edit-done" :disabled="busy" @click="finish">{{ busy ? '保存中…' : '完成' }}</button></div>
+      <div class="header-end-view"><button class="add-tile" :disabled="busy" @click="openTiles">添加拼贴<CirclePlus :size="22" /></button></div>
+    </div></div>
+  </div>
+
   <main v-if="loading || bootError" class="center-state"><LoaderCircle v-if="loading" class="spin" :size="28" /><div v-else class="error-state"><p>{{ bootError }}</p><button class="pill" @click="boot"><RotateCw :size="17" />重试</button></div></main>
   <main v-else-if="!authenticated" class="login-main">
     <form class="login-card glass" @submit.prevent="login">
@@ -167,30 +177,36 @@ onUnmounted(() => { clearTimeout(noticeTimer); window.removeEventListener('resiz
     </form>
   </main>
 
-  <main v-else class="desktop" :class="{ editing }">
-    <div v-if="editing" class="edit-toolbar"><div class="edit-toolbar-inner"><button class="edit-done" :disabled="busy" @click="finish">{{ busy ? '保存中…' : '完成' }}</button><button class="add-tile" :disabled="busy" @click="openTiles">添加拼贴<CirclePlus :size="22" /></button></div></div>
-    <div class="layout-shell">
-      <GridLayout :layout="sections" :col-num="12" :row-height="1" :margin="[0, 0]" :is-draggable="false" :is-resizable="false" :use-css-transforms="true">
-        <GridItem v-for="(section, index) in sections" :key="section.i" :i="section.i" :x="section.x" :y="section.y" :w="section.w" :h="section.h">
+  <main v-else class="home-page" :class="{ editing }">
+    <div class="application-content">
+    <div class="tile-grid" :class="[layout.mode, { customizing: editing }]">
+      <GridLayout class="website-grid" :style="{ width: layout.cardWidth + 'px' }" :layout="sections" :col-num="12" :row-height="1" :margin="[0, 0]" :is-draggable="false" :is-resizable="false" :use-css-transforms="true">
+        <GridItem class="tile-grid-tile-container" :class="layout.large ? 'large' : 'small'" v-for="(section, index) in sections" :key="section.i" :i="section.i" :x="section.x" :y="section.y" :w="section.w" :h="section.h">
+          <div class="tile-grid-tile-content cell" :class="layout.large ? 'large' : 'small'">
           <div class="tile-container">
-          <section class="app-library glass" :class="{ 'edit-mode': editing }" aria-label="网站">
+          <section class="app-library" :class="{ large: layout.large, 'edit-mode': editing }" aria-label="网站">
             <button v-if="editing" class="remove-section" aria-label="移除网站拼贴" title="移除网站拼贴" :disabled="busy" @click="hideSection"><Minus :size="18" /></button>
-            <header v-if="editing" class="section-header"><div class="section-title"><Layers :size="20" :stroke-width="1.8" /><span>网站</span></div><div class="section-options"><button class="section-menu-button" aria-label="网站拼贴选项" :aria-expanded="sectionMenuOpen" aria-haspopup="menu" @click="sectionMenuOpen = !sectionMenuOpen"><ChevronDown :size="20" /></button><div v-if="sectionMenuOpen" class="section-menu account-menu" role="menu"><button role="menuitem" @click="sectionMenuOpen = false; openSite()"><Plus :size="17" />添加网站</button><button role="menuitem" @click="cancel"><RotateCw :size="17" />取消本次修改</button></div></div></header>
+            <header class="header section-header"><template v-if="editing"><div class="title section-title"><Layers :size="20" :stroke-width="1.8" /><span>网站</span></div><div class="section-options"><button class="section-menu-button" aria-label="网站拼贴选项" :aria-expanded="sectionMenuOpen" aria-haspopup="menu" @click="sectionMenuOpen = !sectionMenuOpen"><ChevronDown :size="20" /></button><div v-if="sectionMenuOpen" class="section-menu account-menu" role="menu"><button role="menuitem" @click="sectionMenuOpen = false; openSite()"><Plus :size="17" />添加网站</button><button role="menuitem" @click="cancel"><RotateCw :size="17" />取消本次修改</button></div></div></template></header>
             <Draggable v-model="dashboard.sections[index]!.sites" class="app-icon-container" item-key="id" :disabled="!editing || busy" :animation="180" :delay="140" :delay-on-touch-only="true" :touch-start-threshold="5" ghost-class="drag-ghost" chosen-class="drag-chosen" :fallback-tolerance="5">
               <template #item="{ element: site, index: siteIndex }">
                 <a class="app-icon-link" :href="site.url" target="_blank" rel="noopener noreferrer" :title="site.name" :aria-label="editing ? '编辑 ' + site.name : site.name" @click="siteClick($event, site)" @keydown.alt.left.prevent="editing && moveSite(dashboard.sections[index]!, siteIndex, -1)" @keydown.alt.right.prevent="editing && moveSite(dashboard.sections[index]!, siteIndex, 1)">
-                  <SiteIcon :icon="site.icon" /><span class="app-displayname">{{ site.name }}</span>
+                  <SiteIcon :icon="site.icon" /><div class="app-displayname">{{ site.name }}</div>
                 </a>
               </template>
               <template #footer><button v-if="!dashboard.sections[index]!.sites.length" class="empty-add" aria-label="添加网站" @click="openSite()"><Plus :size="32" :stroke-width="1.5" /></button></template>
             </Draggable>
           </section>
           </div>
+          </div>
         </GridItem>
       </GridLayout>
     </div>
-    <button v-if="!editing" class="customize-button pill" :disabled="busy" @click="customize"><WandSparkles :size="17" :stroke-width="1.7" />自定义</button>
+    </div>
+    <button v-if="!editing" class="block customize-dashboard-button" :disabled="busy" @click="customize"><WandSparkles :size="17" :stroke-width="1.7" />自定义</button>
   </main>
+  </div>
+  </div>
+  </div>
 
   <div v-if="notice" class="toast" role="status">{{ notice }}</div>
   <input ref="upload" type="file" accept="application/json,.json" hidden @change="importConfig" />
