@@ -1,3 +1,5 @@
+import type { DashboardSection } from '../shared/dashboard.ts'
+
 // iCloud's saved homepage bundle uses SM <760, MD <1165, LG >=1165.
 // Only LG renders a large app-library tile. Each grid cell is 315px + 30px gutter.
 export function homepageLayout(width: number) {
@@ -10,6 +12,23 @@ export function homepageLayout(width: number) {
     columns: mode === 'lg' ? 6 : 4,
     editorWidth: width >= 1690 ? 1380 : width >= 1165 ? 1035 : width >= 760 ? 690 : undefined,
   }
+}
+
+export function dashboardGrid(sections: DashboardSection[], width: number, editing: boolean) {
+  const layout = homepageLayout(width)
+  const visible = sections.filter(section => !section.hidden)
+  const spans = visible.map(section => section.type === 'websites' && layout.large ? 2 : 1)
+  const columns = Math.max(1, Math.min(layout.mode === 'sm' ? 1 : layout.mode === 'md' ? 2 : 3, spans.reduce((a, b) => a + b, 0)))
+  let x = 0, y = 0, rowHeight = 0
+  const items = visible.map((section, index) => {
+    const w = spans[index]!
+    if (x + w > columns) { x = 0; y += rowHeight; rowHeight = 0 }
+    const h = (section.type === 'websites' ? libraryHeight(section.sites.length, layout.large, editing) : 315) + 30
+    const item = { i: section.id, x, y, w, h, section }
+    x += w; rowHeight = Math.max(rowHeight, h)
+    return item
+  })
+  return { columns, width: columns * 345, items }
 }
 
 export function libraryHeight(count: number, large: boolean, editing: boolean) {

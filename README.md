@@ -42,7 +42,7 @@ npm test
 1. 创建 D1 数据库，在远程数据库执行 `worker/schema.sql`。
 2. 为目标域名创建 managed Turnstile 组件，更新配置中的公开 sitekey。
 3. 配置 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID`，令牌需具有相应 Workers、D1 与域名操作权限。
-4. 在仓库外准备受保护的 JSON secrets 文件，包含 `ADMIN_PASSWORD`、`SESSION_SECRET`、`TURNSTILE_SECRET`。不要提交此文件。
+4. 在仓库外准备受保护的 JSON secrets 文件，包含 `ADMIN_PASSWORD`、`SESSION_SECRET`、`TURNSTILE_SECRET`。额度卡片另需 `CF_ANALYTICS_TOKEN`、`CF_ANALYTICS_ACCOUNT_ID`；优先使用限定单账号的 Analytics Read 令牌。不要提交此文件。
 5. 执行：
 
 ```sh
@@ -59,6 +59,16 @@ npx cf deploy --secrets-file /absolute/private/path/secrets.json
 Worker 位于 Cloudflare，无法访问家庭局域网。首次导入可在本地读取内网网站标题和图标，写入私有数据库；部署后的自动获取仅访问公网 HTTPS 网站。新增内网地址时可以手动改名并选择 Lucide 图标。打开内网网站仍要求当前设备能访问相应局域网或 VPN。
 
 修改采用版本检查：两台设备同时编辑时，后保存的一方会收到冲突提示，不会覆盖另一台设备已经保存的配置。
+
+## Cloudflare 额度卡片
+
+复用 [workers-chat 的账号额度逻辑](https://github.com/ccawmiku/workers-chat/blob/main/src/server/account-usage.ts)，查询整个账号的 Workers、Durable Objects、D1 与 Workflows。首页按产品展示最高的已知日用量比例；点卡片中的项目或「详情」查看全部 14 项指标。存储峰值、未知指标、共享的 Workers/Workflows 请求额度与单次 CPU 限制分别保留原有说明。
+
+额度卡片沿用原版 iCloud 数据拼贴的 80px 半透明模糊标题区、11px 圆角和阴影，内容区为白色。桌面网站卡片 660px、额度卡片 315px 并排；中等屏幕两张 315px 卡片并排；手机纵向排列。自定义中可以移除并通过「添加拼贴」恢复。读取旧配置时只补充新卡片，不改写网站列表或数据库版本；下一次保存时一起持久化。
+
+额度接口 `/api/account-usage` 需要现有导航登录会话。Analytics 凭证仅绑定 Worker secrets，浏览器与导出配置不包含这些凭证。使用 Cache API 软缓存 5 分钟，手动刷新最短间隔 1 分钟；打开页面、回到页面及手动刷新时获取，不新增自动轮询或 D1/DO 统计缓存。统计失败显示上次数据，未知值不会伪装成 0。每日额度按 UTC 00:00（北京时间 08:00）重置，存储容量不随日重置。
+
+当前部署同时绑定 `index.onya.cc` 与 `index.yaemiko.lol`，保留域名迁移后的新旧入口；Turnstile 白名单也需覆盖这两个主机名。
 
 ## 参考与资源
 

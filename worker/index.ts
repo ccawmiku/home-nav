@@ -1,6 +1,7 @@
 import { env } from 'cloudflare:workers'
-import { emptyDashboard, validateDashboard, websiteUrl } from '../shared/dashboard'
+import { emptyDashboard, validateDashboard, websiteUrl, withQuotaSection } from '../shared/dashboard'
 import { hashPassword, sameSecret, signSession, verifySession } from './auth'
+import { accountUsage } from './account-usage'
 
 const json = (data: unknown, status = 200, headers: HeadersInit = {}) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store', ...headers } })
 const cookieName = '__Host-home-nav'
@@ -48,10 +49,11 @@ async function handle(request: Request): Promise<Response> {
   if (url.pathname === '/api/bootstrap' && request.method === 'GET') return json({ authenticated: await authenticated(request), sitekey: env.TURNSTILE_SITE_KEY })
   if (url.pathname === '/api/login' && request.method === 'POST') return login(request)
   if (!await authenticated(request)) return json({ error: '请先登录' }, 401)
+  if (url.pathname === '/api/account-usage' && request.method === 'GET') return json(await accountUsage(env, url.searchParams.get('refresh') === '1'))
   if (url.pathname === '/api/logout' && request.method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': `${cookieName}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0` })
   if (url.pathname === '/api/dashboard' && request.method === 'GET') {
     const row = await env.DB.prepare('SELECT data,revision FROM dashboard WHERE id=1').first<{ data: string; revision: number }>()
-    return json({ dashboard: row ? JSON.parse(row.data) : emptyDashboard(), revision: row?.revision || 0 })
+    return json({ dashboard: withQuotaSection(row ? validateDashboard(JSON.parse(row.data)) : emptyDashboard()), revision: row?.revision || 0 })
   }
   if (url.pathname === '/api/dashboard' && request.method === 'PUT') {
     const input = await body(request) as { dashboard: unknown; revision: number }

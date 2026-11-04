@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => ({
     entrypoint: './worker/index.ts',
     compatibilityDate: '2026-10-27',
     compatibilityFlags: ['nodejs_compat'],
-    domains: ['index.yaemiko.lol'],
+    domains: ['index.onya.cc', 'index.yaemiko.lol'],
     workersDev: false,
     previewUrls: false,
     env: {
@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => ({
       ADMIN_PASSWORD: bindings.secret(),
       SESSION_SECRET: bindings.secret(),
       TURNSTILE_SECRET: bindings.secret(),
+      CF_ANALYTICS_TOKEN: bindings.secret(),
+      CF_ANALYTICS_ACCOUNT_ID: bindings.secret(),
       TURNSTILE_SITE_KEY: bindings.text(mode === 'development' ? '1x00000000000000000000AA' : '0x4AAAAAAFoQuEqMCcs9svVR'),
     },
     assets: { notFoundHandling: 'single-page-application', runWorkerFirst: ['/api/*'] },

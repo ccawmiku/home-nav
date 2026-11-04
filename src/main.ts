@@ -3,4 +3,5 @@ import App from './App.vue'
 import './style.css'
 import './styles/icloud-reference.css'
 import './styles/integration.css'
+import './styles/quota.css'
 createApp(App).mount('#app')
