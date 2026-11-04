@@ -17,6 +17,8 @@ Vue 3 + Vite + Cloudflare Workers 构建的个人网站导航。界面参考 iCl
 
 原始样式来源、布局规则与验证方法见 [iCloud 参考实现记录](docs/icloud-reference.md)。
 
+后续可选功能见 [功能扩展清单](docs/功能扩展清单.md)。
+
 ## 本地开发
 
 需要 Node.js 24.22 或更新的受支持版本。依赖版本由 `package-lock.json` 固定。
