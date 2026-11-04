@@ -8,7 +8,7 @@
     "build": "cf build",
     "deploy": "cf deploy",
     "check": "vue-tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts && vitest run --config vitest.config.ts"
   },
   "dependencies": {
     "@lucide/vue": "^1.62.0",
@@ -20,9 +20,12 @@
     "@cloudflare/vite-plugin": "beta",
     "@types/node": "latest",
     "@vitejs/plugin-vue": "latest",
+    "@vue/test-utils": "^2.5.1",
     "cf": "1.0.0-beta.23",
+    "happy-dom": "^21.0.4",
     "typescript": "^6.0.3",
     "vite": "latest",
+    "vitest": "^5.1.0",
     "vue-tsc": "latest"
   }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue'
-import { CirclePlus, WandSparkles, Plus, LogOut, KeyRound, Download, Upload, LoaderCircle, Layers, ChevronDown, Minus, RotateCw, Cloud } from '@lucide/vue'
+import { CirclePlus, WandSparkles, Plus, LogOut, KeyRound, Download, Upload, LoaderCircle, Layers, ChevronDown, Minus, RotateCw, Cloud, Pencil, ChevronRight } from '@lucide/vue'
 import { GridItem, GridLayout } from 'grid-layout-plus'
 import Draggable from 'vuedraggable'
 import { emptyDashboard, validateDashboard, websiteUrl, withQuotaSection } from '../shared/dashboard'
@@ -18,7 +18,8 @@ const authenticated = ref(false); const loading = ref(true); const bootError = r
 const password = ref(''); const token = ref(''); const loginError = ref(''); const busy = ref(false)
 const turnstile = ref<InstanceType<typeof TurnstileWidget>>()
 const editing = ref(false); let snapshot = ''
-const accountOpen = ref(false); const sectionMenuOpen = ref(false); const modal = ref<'site' | 'password' | 'tiles' | 'quota' | null>(null)
+const accountOpen = ref(false); const sectionMenuOpen = ref(false); const modal = ref<'site' | 'sites' | 'password' | 'tiles' | 'quota' | null>(null)
+const returnToSites = ref(false)
 const notice = ref(''); let noticeTimer: ReturnType<typeof setTimeout> | undefined
 const modalError = ref(''); const autoBusy = ref(false); const form = ref<Site>(newSite()); const originalId = ref('')
 const currentPassword = ref(''); const nextPassword = ref(''); const repeatPassword = ref('')
@@ -87,20 +88,27 @@ function cancel() { dashboard.value = JSON.parse(snapshot); editing.value = fals
 function hideSection(section: DashboardSection) { section.hidden = true; sectionMenuOpen.value = false }
 function restoreSection(section: DashboardSection) { section.hidden = false; modal.value = null }
 function openTiles() { sectionMenuOpen.value = false; modal.value = 'tiles' }
-function openSite(site?: Site) { if (busy.value) return; metadataGeneration++; originalId.value = site?.id || ''; form.value = site ? JSON.parse(JSON.stringify(site)) : newSite(); modalError.value = ''; autoBusy.value = false; accountOpen.value = false; modal.value = 'site' }
+function openSites() { accountOpen.value = false; modal.value = 'sites' }
+function openSite(site?: Site, fromList = false) { if (busy.value) return; metadataGeneration++; returnToSites.value = fromList; originalId.value = site?.id || ''; form.value = site ? JSON.parse(JSON.stringify(site)) : newSite(); modalError.value = ''; autoBusy.value = false; accountOpen.value = false; modal.value = 'site' }
 let metadataGeneration = 0
 async function getMetadata() {
-  const generation = ++metadataGeneration; const before = form.value.name
+  const generation = ++metadataGeneration; const before = form.value.name; const beforeIcon = form.value.icon.value
   try {
     const url = websiteUrl(form.value.url); autoBusy.value = true
     const result = await api<{ name: string; icon: string; local?: boolean }>('/api/metadata', { method: 'POST', body: JSON.stringify({ url }) })
-    if (generation !== metadataGeneration || modal.value !== 'site') return
-    if (form.value.name === before) form.value.name = result.name
-    if (form.value.icon.type === 'auto') form.value.icon.value = result.icon
+    if (generation !== metadataGeneration || modal.value !== 'site' || websiteUrl(form.value.url) !== url) return
+    if (!before.trim() && !form.value.name.trim()) form.value.name = result.name
+    if (form.value.icon.type === 'auto' && form.value.icon.value === beforeIcon) form.value.icon.value = result.icon
   } catch (error) { if (generation === metadataGeneration) modalError.value = (error as Error).message }
   finally { if (generation === metadataGeneration) autoBusy.value = false }
 }
-function closeModal() { if (busy.value) return; metadataGeneration++; modal.value = null; autoBusy.value = false }
+function closeModal() { if (busy.value) return; metadataGeneration++; modal.value = modal.value === 'site' && returnToSites.value ? 'sites' : null; autoBusy.value = false }
+function setIconType(type: Site['icon']['type']) {
+  if (form.value.icon.type === type || busy.value) return
+  metadataGeneration++; autoBusy.value = false
+  form.value.icon = { type, value: type === 'lucide' ? 'Globe' : '', color: form.value.icon.color || '#007aff' }
+  if (type === 'auto' && form.value.url) void getMetadata()
+}
 async function submitSite() {
   busy.value = true; modalError.value = ''; const before = JSON.stringify(dashboard.value)
   try {
@@ -110,14 +118,15 @@ async function submitSite() {
     if (index < 0) list.push(site); else list[index] = site
     websiteSection.value.hidden = false
     validateDashboard(dashboard.value); if (!editing.value) await save()
-    metadataGeneration++; modal.value = null
+    metadataGeneration++; modal.value = returnToSites.value ? 'sites' : null
+    flash(editing.value ? '已应用，点击顶部“完成”保存' : '已保存')
   } catch (error) { dashboard.value = JSON.parse(before); modalError.value = (error as Error).message }
   finally { busy.value = false }
 }
 async function removeSite() {
   if (!window.confirm('删除这个网站？')) return
   busy.value = true; const before = JSON.stringify(dashboard.value)
-  try { websiteSection.value.sites = websiteSection.value.sites.filter(site => site.id !== originalId.value); if (!editing.value) await save(); modal.value = null }
+  try { websiteSection.value.sites = websiteSection.value.sites.filter(site => site.id !== originalId.value); if (!editing.value) await save(); modal.value = returnToSites.value ? 'sites' : null }
   catch (error) { dashboard.value = JSON.parse(before); modalError.value = (error as Error).message }
   finally { busy.value = false }
 }
@@ -169,6 +178,7 @@ onUnmounted(() => { usageController?.abort(); clearTimeout(noticeTimer); window.
       <div ref="account" class="account">
         <button class="avatar-button" aria-label="账户设置" :aria-expanded="accountOpen" aria-haspopup="menu" @click="accountOpen = !accountOpen"><img src="/avatar.png" alt="头像" /></button>
         <div v-if="accountOpen" class="account-menu" role="menu">
+          <button role="menuitem" @click="openSites"><Pencil :size="17" />编辑网站</button>
           <button role="menuitem" @click="openPassword"><KeyRound :size="17" />修改密码</button>
           <button role="menuitem" @click="exportConfig"><Download :size="17" />导出配置</button>
           <button role="menuitem" :disabled="editing" @click="upload?.click()"><Upload :size="17" />导入配置</button>
@@ -209,11 +219,14 @@ onUnmounted(() => { usageController?.abort(); clearTimeout(noticeTimer); window.
           <section v-if="section.section.type === 'websites'" class="app-library" :class="{ large: layout.large, 'edit-mode': editing }" aria-label="网站">
             <button v-if="editing" class="remove-section" aria-label="移除网站拼贴" title="移除网站拼贴" :disabled="busy" @click="hideSection(websiteSection)"><Minus :size="18" /></button>
             <header class="header section-header"><template v-if="editing"><div class="title section-title"><Layers :size="20" :stroke-width="1.8" /><span>网站</span></div><div class="section-options"><button class="section-menu-button" aria-label="网站拼贴选项" :aria-expanded="sectionMenuOpen" aria-haspopup="menu" @click="sectionMenuOpen = !sectionMenuOpen"><ChevronDown :size="20" /></button><div v-if="sectionMenuOpen" class="section-menu account-menu" role="menu"><button role="menuitem" @click="sectionMenuOpen = false; openSite()"><Plus :size="17" />添加网站</button><button role="menuitem" @click="cancel"><RotateCw :size="17" />取消本次修改</button></div></div></template></header>
-            <Draggable v-model="websiteSection.sites" class="app-icon-container" item-key="id" :disabled="!editing || busy" :animation="180" :delay="140" :delay-on-touch-only="true" :touch-start-threshold="5" ghost-class="drag-ghost" chosen-class="drag-chosen" :fallback-tolerance="5">
+            <Draggable v-model="websiteSection.sites" class="app-icon-container" item-key="id" :disabled="!editing || busy" :animation="180" :delay="140" :delay-on-touch-only="true" :touch-start-threshold="5" filter=".shortcut-edit" :prevent-on-filter="false" ghost-class="drag-ghost" chosen-class="drag-chosen" :fallback-tolerance="5">
               <template #item="{ element: site, index: siteIndex }">
-                <a class="app-icon-link" :href="site.url" target="_blank" rel="noopener noreferrer" :title="site.name" :aria-label="editing ? '编辑 ' + site.name : site.name" @click="siteClick($event, site)" @keydown.alt.left.prevent="editing && moveSite(websiteSection, siteIndex, -1)" @keydown.alt.right.prevent="editing && moveSite(websiteSection, siteIndex, 1)">
+                <div class="site-shortcut">
+                <a class="app-icon-link" :href="site.url" target="_blank" rel="noopener noreferrer" :title="site.name" :aria-label="editing ? '编辑 ' + site.name : site.name" @click="siteClick($event, site)" @contextmenu.prevent="openSite(site)" @keydown.alt.left.prevent="editing && moveSite(websiteSection, siteIndex, -1)" @keydown.alt.right.prevent="editing && moveSite(websiteSection, siteIndex, 1)">
                   <SiteIcon :icon="site.icon" /><div class="app-displayname">{{ site.name }}</div>
                 </a>
+                <button v-if="editing" type="button" class="shortcut-edit" :aria-label="'修改 ' + site.name" :title="'编辑 ' + site.name" :disabled="busy" @click.stop="openSite(site)"><Pencil :size="12" :stroke-width="2" /></button>
+                </div>
               </template>
               <template #footer><button v-if="!websiteSection.sites.length" class="empty-add" aria-label="添加网站" @click="openSite()"><Plus :size="32" :stroke-width="1.5" /></button></template>
             </Draggable>
@@ -237,15 +250,18 @@ onUnmounted(() => { usageController?.abort(); clearTimeout(noticeTimer); window.
   <DialogShell v-if="modal === 'tiles'" title="添加拼贴" @close="closeModal"><div class="tile-picker"><button v-for="section in dashboard.sections" :key="section.id" class="tile-picker-choice" :disabled="!section.hidden" @click="restoreSection(section)"><component :is="section.type === 'websites' ? Layers : Cloud" :size="28" /><span>{{ section.type === 'websites' ? '网站' : 'Cloudflare 额度' }}</span><span class="tile-picker-status">{{ section.hidden ? '添加' : '已添加' }}</span></button></div></DialogShell>
   <DialogShell v-if="modal === 'quota'" title="Cloudflare 额度" @close="closeModal"><QuotaDetails :usage="usage" :busy="usageBusy" :error="usageError" @refresh="refreshUsage(true)" /></DialogShell>
 
+  <DialogShell v-if="modal === 'sites'" title="编辑网站" @close="closeModal"><div class="site-manager"><button v-for="site in websiteSection.sites" :key="site.id" type="button" class="site-manager-row" :aria-label="'编辑 ' + site.name" @click="openSite(site, true)"><SiteIcon :icon="site.icon" /><span class="site-manager-text"><strong>{{ site.name }}</strong><span>{{ site.url }}</span></span><ChevronRight :size="17" /></button><button type="button" class="site-manager-add" @click="openSite(undefined, true)"><Plus :size="18" />添加网站</button></div></DialogShell>
+
   <DialogShell v-if="modal === 'site'" :title="originalId ? '编辑网站' : '添加网站'" :busy="busy" @close="closeModal">
     <form class="site-form" @submit.prevent="submitSite">
       <div class="site-preview"><SiteIcon :icon="form.icon" /></div>
-      <label>网址<div class="url-field"><input v-model="form.url" type="url" placeholder="https://" required maxlength="2048" :disabled="busy" @change="getMetadata" /><button type="button" class="icon-button" aria-label="获取网站名称和图标" title="获取网站名称和图标" :disabled="busy || autoBusy || !form.url" @click="getMetadata"><RotateCw :size="17" :class="{ spin: autoBusy }" /></button></div></label>
+      <label>网址<div class="url-field"><input v-model="form.url" type="url" placeholder="https://" required maxlength="2048" :disabled="busy" @change="!originalId && getMetadata()" /><button type="button" class="icon-button" aria-label="获取网站图标并补全空白名称" title="获取网站图标并补全空白名称" :disabled="busy || autoBusy || !form.url" @click="getMetadata"><RotateCw :size="17" :class="{ spin: autoBusy }" /></button></div></label>
       <label>名称<input v-model="form.name" placeholder="网站名称" maxlength="80" :disabled="busy" /></label>
-      <div class="segmented"><button type="button" :class="{ active: form.icon.type === 'auto' }" @click="form.icon = { type: 'auto', value: '', color: '#007aff' }; getMetadata()">网站图标</button><button type="button" :class="{ active: form.icon.type === 'lucide' }" @click="form.icon = { type: 'lucide', value: 'Globe', color: '#007aff' }">Lucide 图标</button></div>
+      <div class="segmented"><button type="button" :class="{ active: form.icon.type === 'auto' }" :disabled="busy" @click="setIconType('auto')">网站图标</button><button type="button" :class="{ active: form.icon.type === 'lucide' }" :disabled="busy" @click="setIconType('lucide')">Lucide 图标</button></div>
+      <label v-if="form.icon.type === 'auto'">图标地址<input v-model="form.icon.value" type="url" placeholder="https://example.com/favicon.ico" maxlength="130000" :disabled="busy" /></label>
       <template v-if="form.icon.type === 'lucide'"><div class="color-options"><button v-for="color in ['#007aff', '#34a853', '#ff9500', '#af52de', '#ff3b30', '#242426']" :key="color" type="button" :style="{ background: color }" :class="{ selected: form.icon.color === color }" :aria-label="color" :aria-pressed="form.icon.color === color" @click="form.icon.color = color" /><input v-model="form.icon.color" type="color" aria-label="自定义颜色" /></div><IconPicker :selected="form.icon.value" @select="form.icon.value = $event" /></template>
       <p v-if="modalError" class="form-error" role="alert">{{ modalError }}</p>
-      <footer class="dialog-footer"><button v-if="originalId" class="text-button danger" type="button" :disabled="busy" @click="removeSite">删除网站</button><button class="primary-button" type="submit" :disabled="busy || autoBusy">{{ busy ? '保存中…' : '保存' }}</button></footer>
+      <footer class="dialog-footer"><button v-if="originalId" class="text-button danger" type="button" :disabled="busy" @click="removeSite">删除网站</button><button class="primary-button" type="submit" :disabled="busy || autoBusy">{{ busy ? '保存中…' : editing ? '应用修改' : '保存' }}</button></footer>
     </form>
   </DialogShell>
   <DialogShell v-if="modal === 'password'" title="修改密码" :busy="busy" @close="closeModal"><form class="password-form" @submit.prevent="changePassword"><label>当前密码<input v-model="currentPassword" type="password" autocomplete="current-password" required maxlength="256" /></label><label>新密码<input v-model="nextPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" placeholder="至少 8 个字符" /></label><label>确认新密码<input v-model="repeatPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="128" /></label><p v-if="modalError" class="form-error" role="alert">{{ modalError }}</p><footer class="dialog-footer"><button class="primary-button" :disabled="busy">保存</button></footer></form></DialogShell>

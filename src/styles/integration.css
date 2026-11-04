@@ -57,6 +57,9 @@ body {
 .app-library .app-icon-container div.app-displayname { color: var(--theme-color-labelPrimary); font-family: "SF Pro SC", "SF Pro Text", "Helvetica Neue", sans-serif; }
 .app-library.edit-mode .header .title span { font-family: "SF Pro SC", "SF Pro Display", "Helvetica Neue", sans-serif; }
 .app-library.edit-mode .app-displayname { display: none; }
+.app-library.edit-mode .app-icon-container { opacity: 1; }
+.app-library.edit-mode .app-icon-link { opacity: .5; }
+.app-library.large .shortcut-edit { left: calc(50% + 24px); }
 .site-icon { width: 54px; height: 54px; border-radius: 13px; box-shadow: none; }
 .site-icon svg { width: 29px; height: 29px; }
 .app-library.large .site-icon { width: 70px; height: 70px; border-radius: 17px; }

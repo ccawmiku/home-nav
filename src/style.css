@@ -86,3 +86,17 @@ input:not([type=color]){min-width:0;border:1px solid #0000001c;border-radius:9px
 .tile-picker{padding:12px 24px 24px}
 .tile-picker-choice{display:flex;align-items:center;gap:12px;width:100%;padding:18px;border:1px solid #00000012;border-radius:12px;background:white;text-align:left}
 .tile-picker-status{margin-left:auto;color:#007aff;font-size:13px}
+.site-shortcut{position:relative;min-width:0}
+.shortcut-edit{position:absolute;top:-6px;left:calc(50% + 15px);width:26px;height:26px;padding:0;border-radius:50%;display:grid;place-items:center;background:white;color:#007aff;box-shadow:0 1px 5px #0002;z-index:1;touch-action:manipulation}
+.shortcut-edit:hover{background:#f1f6ff}
+.site-manager{margin:6px 16px 20px;background:white;border-radius:13px;overflow:hidden}
+.site-manager-row{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;background:none;text-align:left;min-height:64px}
+.site-manager-row+.site-manager-row,.site-manager-add{border-top:.5px solid #00000010}
+.site-manager-row:hover,.site-manager-add:hover{background:#007aff06}
+.site-manager-row .site-icon{width:36px;height:36px;border-radius:9px}
+.site-manager-row .site-icon svg{width:21px;height:21px}
+.site-manager-row>svg{flex-shrink:0;color:#aaa}
+.site-manager-text{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+.site-manager-text strong{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.site-manager-text>span{font-size:11px;color:#86868b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.site-manager-add{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:14px;background:none;color:#007aff;font-size:13px}
