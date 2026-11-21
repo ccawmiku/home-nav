@@ -22,7 +22,7 @@
     "@types/node": "latest",
     "@vitejs/plugin-vue": "latest",
     "@vue/test-utils": "^2.6.0",
-    "cf": "1.0.0-beta.23",
+    "cf": "1.0.0-rc.1",
     "happy-dom": "^21.0.4",
     "miniflare": "5.20261023.0-beta",
     "typescript": "^6.0.3",
